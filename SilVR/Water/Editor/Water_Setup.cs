@@ -7,27 +7,23 @@ using UnityEditor;
 namespace SilVR
 {
 
-    class Water_Setup : EditorWindow
+    public class Water_Setup : EditorWindow
     {
         GameObject RefPlane;
         Cubemap cubemap;
-    
+
         //GameObject TargetPlane;
 
         GameObject RigRoot;
         GameObject RigWaterSurface;
-        GameObject RigRenderPlane;
         Camera SurfaceCamera;
-        Camera RenderCamera;
         RenderTexture CameraInput;
-        RenderTexture Propegation;
+        CustomRenderTexture PropagationCRT;
 
         GameObject RigWaterSurfaceL;
-        GameObject RigRenderPlaneL;
         Camera SurfaceCameraL;
-        Camera RenderCameraL;
         RenderTexture CameraInputL;
-        RenderTexture PropegationL;
+        CustomRenderTexture PropagationLCRT;
 
         int mat_count = 7;
         Material[] mats;
@@ -95,16 +91,12 @@ namespace SilVR
             HelpMessage("Drop the prefab into the world and find the Gameobjects that match the name in the fields below");
             RigRoot = (GameObject)EditorGUILayout.ObjectField("Water Rig 3.0", RigRoot, typeof(GameObject), true);
             RigWaterSurface = (GameObject)EditorGUILayout.ObjectField(quality + "_Surface", RigWaterSurface, typeof(GameObject), true);
-            RigRenderPlane = (GameObject)EditorGUILayout.ObjectField(quality + "_Render_Plane_q", RigRenderPlane, typeof(GameObject), true);
             SurfaceCamera = (Camera)EditorGUILayout.ObjectField(quality + "_Cam_In", SurfaceCamera, typeof(Camera), true);
-            RenderCamera = (Camera)EditorGUILayout.ObjectField(quality + "_Render_Cam", RenderCamera, typeof(Camera), true);
             if (lite_qual)
             {
                 quality = "L";
                 RigWaterSurfaceL = (GameObject)EditorGUILayout.ObjectField(quality + "_Surface", RigWaterSurfaceL, typeof(GameObject), true);
-                RigRenderPlaneL = (GameObject)EditorGUILayout.ObjectField(quality + "_Render_Plane_q", RigRenderPlaneL, typeof(GameObject), true);
                 SurfaceCameraL = (Camera)EditorGUILayout.ObjectField(quality + "_Cam_In", SurfaceCameraL, typeof(Camera), true);
-                RenderCameraL = (Camera)EditorGUILayout.ObjectField(quality + "_Render_Cam", RenderCameraL, typeof(Camera), true);
             }
 
 
@@ -114,7 +106,7 @@ namespace SilVR
             GUILayout.Label("Materials (Order doesn't matter)", EditorStyles.boldLabel);
             HelpMessage("These are slots to change the settings on some of the materials in the project. The order doesnt matter. For the default quality, just drag every material in Assets > SilVR > Materials > Default. For lite quality, do so in Assets > SilVR > Materials > Lite.");
 
-            Material [] mats_temp = new Material[mats.Length];
+            Material[] mats_temp = new Material[mats.Length];
             if (mats.Length > 0)
             {
                 for (int i = 0; i < mats.Length && i < mats_temp.Length; i++)
@@ -137,7 +129,7 @@ namespace SilVR
                 }
             }
 
-                for (int i = 0; i < mat_count; i++)
+            for (int i = 0; i < mat_count; i++)
             {
                 mats[i] = (Material)EditorGUILayout.ObjectField("Material", mats[i], typeof(Material), false);
             }
@@ -147,7 +139,7 @@ namespace SilVR
                 FillMaterials();
             }
 
-            if (GUILayout.Button("Set up rig", "Button" ))
+            if (GUILayout.Button("Set up rig", "Button"))
             {
                 Button();
             }
@@ -159,7 +151,7 @@ namespace SilVR
             GUILayout.EndVertical();
         }
 
-        void PreviewResolution()
+        private void PreviewResolution()
         {
             Vector3 RefScale = RefPlane.transform.localScale * 5;
             int WidthInPixels = (int)(RefScale.x * PixelsPerMeter + 0.5);
@@ -168,13 +160,12 @@ namespace SilVR
             Image_Height = HeightInPixels;
         }
 
-        void Button()
+        private void Button()
         {
             Debug.Log("The button has been pressed");
-            if(RefPlane)
+            if (RefPlane)
             {
                 CameraInput = SurfaceCamera.targetTexture;
-                Propegation = RenderCamera.targetTexture;
 
                 Vector3 RefScale = RefPlane.transform.localScale * 5;
                 Vector3 RefPos = RefPlane.transform.position;
@@ -195,49 +186,44 @@ namespace SilVR
                 Vector3 newLocalScale = new Vector3((float)WidthInPixels / PixelsPerMeter, 1, (float)HeightInPixels / PixelsPerMeter);
 
                 RigWaterSurface.transform.localScale = newLocalScale;
-                RigRenderPlane.transform.localScale = newLocalScale;
 
                 SurfaceCamera.orthographicSize = newLocalScale.z;
-                RenderCamera.orthographicSize = newLocalScale.z;
 
                 CameraInput.Release();
                 CameraInput.width = WidthInPixels;
                 CameraInput.height = HeightInPixels;
                 CameraInput.Create();
 
-                Propegation.Release();
-                Propegation.width = WidthInPixels;
-                Propegation.height = HeightInPixels;
-                Propegation.Create();
+                PropagationCRT.Release();
+                PropagationCRT.width = WidthInPixels;
+                PropagationCRT.height = HeightInPixels;
+                PropagationCRT.Create();
 
                 if (lite_qual)
                 {
                     CameraInputL = SurfaceCameraL.targetTexture;
-                    PropegationL = RenderCameraL.targetTexture;
 
                     RigWaterSurfaceL.transform.localPosition = Vector3.zero;
 
                     RigWaterSurfaceL.transform.localScale = newLocalScale;
-                    RigRenderPlaneL.transform.localScale = newLocalScale;
 
                     SurfaceCameraL.orthographicSize = newLocalScale.z;
-                    RenderCameraL.orthographicSize = newLocalScale.z;
 
                     CameraInputL.Release();
                     CameraInputL.width = WidthInPixels;
                     CameraInputL.height = HeightInPixels;
                     CameraInputL.Create();
 
-                    PropegationL.Release();
-                    PropegationL.width = WidthInPixels;
-                    PropegationL.height = HeightInPixels;
-                    PropegationL.Create();
+                    PropagationLCRT.Release();
+                    PropagationLCRT.width = WidthInPixels;
+                    PropagationLCRT.height = HeightInPixels;
+                    PropagationLCRT.Create();
                 }
 
 
                 for (int i = 0; i < mats.Length; i++)
                 {
-                    SetMaterial(mats[i], WidthInPixels, HeightInPixels);
+                    SetMaterial(mats[i]);
                 }
 
                 RefPlane.SetActive(false);
@@ -253,7 +239,7 @@ namespace SilVR
             }
         }
 
-        void HelpMessage(string output)
+        private void HelpMessage(string output)
         {
             if (show_help)
             {
@@ -261,26 +247,10 @@ namespace SilVR
             }
         }
 
-        void SetMaterial(Material mat, int WidthInPixels, int HeightInPixels)
+        private void SetMaterial(Material mat)
         {
             if (mat)
             {
-                if (mat.HasProperty("_ImgWidth"))
-                {
-                    mat.SetInt("_ImgWidth", WidthInPixels);
-                }
-                if (mat.HasProperty("_imgWidth"))
-                {
-                    mat.SetInt("_imgWidth", WidthInPixels);
-                }
-                if (mat.HasProperty("_ImgHeight"))
-                {
-                    mat.SetInt("_ImgHeight", HeightInPixels);
-                }
-                if (mat.HasProperty("_imgHeight"))
-                {
-                    mat.SetInt("_imgHeight", HeightInPixels);
-                }
                 if (mat.HasProperty("_Cube"))
                 {
                     mat.SetTexture("_Cube", cubemap);
@@ -292,7 +262,7 @@ namespace SilVR
             }
         }
 
-       void FillWithDefaults()
+        private void FillWithDefaults()
         {
             lite_qual = true;
             PixelsPerMeter = 144;
@@ -310,33 +280,17 @@ namespace SilVR
                     {
                         RigWaterSurface = t.gameObject;
                     }
-                    if (t.gameObject.name == "D_Render_Plane_q")
-                    {
-                        RigRenderPlane = t.gameObject;
-                    }
                     if (t.gameObject.name == "D_Cam_In")
                     {
                         SurfaceCamera = t.gameObject.GetComponent<Camera>();
-                    }
-                    if (t.gameObject.name == "D_Render_Cam")
-                    {
-                        RenderCamera = t.gameObject.GetComponent<Camera>();
                     }
                     if (t.gameObject.name == "L_Surface")
                     {
                         RigWaterSurfaceL = t.gameObject;
                     }
-                    if (t.gameObject.name == "L_Render_Plane_q")
-                    {
-                        RigRenderPlaneL = t.gameObject;
-                    }
                     if (t.gameObject.name == "L_Cam_In")
                     {
                         SurfaceCameraL = t.gameObject.GetComponent<Camera>();
-                    }
-                    if (t.gameObject.name == "L_Render_Cam")
-                    {
-                        RenderCameraL = t.gameObject.GetComponent<Camera>();
                     }
                 }
             }
@@ -347,11 +301,12 @@ namespace SilVR
 
 
             cubemap = (Cubemap)AssetDatabase.LoadAssetAtPath("Assets/Skybox/sky.jpg", typeof(Cubemap));
-
+            PropagationCRT = (CustomRenderTexture)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Default/Wave_CRT.asset", typeof(CustomRenderTexture));
+            PropagationLCRT = (CustomRenderTexture)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Lite/Wave_CRT.asset", typeof(CustomRenderTexture));
             FillMaterials();
 
         }
-        void FillMaterials()
+        private void FillMaterials()
         {
             if (mat_count < 17)
             {
@@ -364,12 +319,12 @@ namespace SilVR
             mats[2] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Default/DM_Flat_Mirror.mat", typeof(Material));
             mats[3] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Default/DM_Raymarched.mat", typeof(Material));
             mats[4] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Default/DM_Reflective_Raymarched.mat", typeof(Material));
-            mats[5] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Default/DM_Render_Plane.mat", typeof(Material));
+            mats[5] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Default/DM_CRT.mat", typeof(Material));
             mats[6] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Default/DM_Top.mat", typeof(Material));
             mats[7] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Lite/LM_Bottom.mat", typeof(Material));
             mats[8] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Lite/LM_Distortion.mat", typeof(Material));
             mats[9] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Lite/LM_Flat_Mirror.mat", typeof(Material));
-            mats[10] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Lite/LM_Render_Plane.mat", typeof(Material));
+            mats[10] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Lite/LM_CRT.mat", typeof(Material));
             mats[11] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Lite/LM_Top.mat", typeof(Material));
             mats[12] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Default/Presets/Classic.mat", typeof(Material));
             mats[13] = (Material)AssetDatabase.LoadAssetAtPath("Assets/SilVR/Water/Materials/Default/Presets/Clear.mat", typeof(Material));
