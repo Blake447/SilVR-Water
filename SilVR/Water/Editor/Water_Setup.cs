@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.Assertions.Must;
 
 #if UNITY_EDITOR
 namespace SilVR
@@ -28,8 +29,9 @@ namespace SilVR
         int mat_count = 7;
         Material[] mats;
 
+		string field = "default";
 
-        Vector2 scrollPos = new Vector2(0, 0);
+		Vector2 scrollPos = new Vector2(0, 0);
         int Image_Width = 0;
         int Image_Height = 0;
         int PixelsPerMeter = 144;
@@ -56,7 +58,6 @@ namespace SilVR
             //this.minSize = new Vector2(350, 540);
             GUILayout.BeginVertical();
             show_help = EditorGUILayout.Toggle("show help", show_help);
-            lite_qual = EditorGUILayout.Toggle("Lite quality", lite_qual);
 
             GUILayout.Label("Quick Setup", EditorStyles.boldLabel);
 
@@ -73,7 +74,9 @@ namespace SilVR
             HelpMessage("Take a standard unity plane and place it and resize it to where you want your water. Then drag it from the inspector to the field labeled 'reference plane'");
             PixelsPerMeter = EditorGUILayout.IntField("Pixels per meter", PixelsPerMeter);
 
-            RefPlane = (GameObject)EditorGUILayout.ObjectField("Reference Plane", RefPlane, typeof(GameObject), true);
+
+			GUILayout.Space(12);
+			RefPlane = (GameObject)EditorGUILayout.ObjectField("Reference Plane", RefPlane, typeof(GameObject), true);
             if (RefPlane)
             {
                 PreviewResolution();
@@ -87,65 +90,257 @@ namespace SilVR
 
             string quality = "D";
 
-            GUILayout.Label("Target objects (From Prefab)", EditorStyles.boldLabel);
+			GUILayout.Space(12);
+			GUILayout.Label("Detected Prefabs", EditorStyles.boldLabel);
+            List <GameObject> prefabs = new List<GameObject>();
+            GameObject[] taggedObjects = GameObject.FindGameObjectsWithTag("silvr");
+            if (taggedObjects != null)
+            {
+                for (int i = 0; i < taggedObjects.Length; i++)
+                {
+                    bool isValidPrefab = IsValidPrefab(taggedObjects[i]);
+                    if (isValidPrefab)
+                    {
+                        prefabs.Add(taggedObjects[i]);
+                    }
+                }
+            }
+            if (prefabs.Count == 0)
+            {
+
+            }
+            else
+            {
+                for (int i = 0; i < prefabs.Count; i++)
+                {
+                    if (GUILayout.Button(prefabs[i].name, "Button"))
+                    {
+                        EditorGUIUtility.PingObject(prefabs[i]);
+                    }
+                }
+            }
+            GUILayout.Space(12);
+
+            GUILayout.Label("Generate New Assets");
+
+            GUILayout.Space(6);
+            GUILayout.Label("Asset pack name");
+            field = GUILayout.TextField(field);
+            field = System.Text.RegularExpressions.Regex.Replace(field, @"[^a-zA-Z -]", "");
+            field = field.Replace(" ", "-");
+            GUILayout.Space(6);
+
             HelpMessage("Drop the prefab into the world and find the Gameobjects that match the name in the fields below");
-            RigRoot = (GameObject)EditorGUILayout.ObjectField("Water Rig 3.0", RigRoot, typeof(GameObject), true);
-            RigWaterSurface = (GameObject)EditorGUILayout.ObjectField(quality + "_Surface", RigWaterSurface, typeof(GameObject), true);
-            SurfaceCamera = (Camera)EditorGUILayout.ObjectField(quality + "_Cam_In", SurfaceCamera, typeof(Camera), true);
-            if (lite_qual)
+            //RigRoot = (GameObject)EditorGUILayout.ObjectField("Water Rig 3.0", RigRoot, typeof(GameObject), true);
+
+			GUILayout.Space(12);
+
+            Material surfaceMat = null;
+            Material renderMat = null;
+            Material normalMat = null;
+
+            CustomRenderTexture normalCRT = null;
+            CustomRenderTexture renderCRT = null;
+            RenderTexture cameraInRT = null;
+
+            //Debug.Log("Outputting to " + outPath);
+            //Debug.Log(DM_N_PATH);
+
+            if (GUILayout.Button("Generate", "Button"))
             {
-                quality = "L";
-                RigWaterSurfaceL = (GameObject)EditorGUILayout.ObjectField(quality + "_Surface", RigWaterSurfaceL, typeof(GameObject), true);
-                SurfaceCameraL = (Camera)EditorGUILayout.ObjectField(quality + "_Cam_In", SurfaceCameraL, typeof(Camera), true);
-            }
+				string DM_TOP_PATH = "";
+				string DM_RP_PATH = "";
+				string DM_N_PATH = "";
+				string DCRT_N_PATH = "";
+				string DCRT_RP_PATH = "";
+				string DRT_CAM_IN_PATH = "";
 
+				string outPath = "";
 
+				string[] pathsToSearch = AssetDatabase.FindAssets("t:Folder SilVR");
+				if (pathsToSearch != null)
+				{
 
-            //CameraInput = (RenderTexture)EditorGUILayout.ObjectField("DRT_Cam_In", CameraInput, typeof(RenderTexture), false);
-            //Propegation = (RenderTexture)EditorGUILayout.ObjectField("DRT_Render_Cam", Propegation, typeof(RenderTexture), false);
-            GUILayout.Label("Materials (Order doesn't matter)", EditorStyles.boldLabel);
-            HelpMessage("These are slots to change the settings on some of the materials in the project. The order doesnt matter. For the default quality, just drag every material in Assets > SilVR > Materials > Default. For lite quality, do so in Assets > SilVR > Materials > Lite.");
+					for (int i = 0; i < pathsToSearch.Length; i++)
+					{
+						if (System.IO.Directory.Exists(AssetDatabase.GUIDToAssetPath(pathsToSearch[i]) + "/Water/Generated"))
+						{
+							outPath = AssetDatabase.GUIDToAssetPath(pathsToSearch[i]) + "/Water/Generated";
+						}
+						if (System.IO.Directory.Exists(AssetDatabase.GUIDToAssetPath(pathsToSearch[i]) + "/Water"))
+						{
+							string pathName = AssetDatabase.GUIDToAssetPath(pathsToSearch[i]);
+							if (System.IO.File.Exists(pathName + "/Water/Templates/Default/DM_Top.mat"))
+							{
+								DM_TOP_PATH = pathName + "/Water/Templates/Default/DM_Top.mat";
+							}
+							if (System.IO.File.Exists(pathName + "/Water/Templates/Default/DM_RP.mat"))
+							{
+								DM_RP_PATH = pathName + "/Water/Templates/Default/DM_RP.mat";
+							}
+							if (System.IO.File.Exists(pathName + "/Water/Templates/Default/DM_N.mat"))
+							{
+								DM_N_PATH = pathName + "/Water/Templates/Default/DM_N.mat";
+							}
+							if (System.IO.File.Exists(pathName + "/Water/Templates/Default/DCRT_N.asset"))
+							{
+								DCRT_N_PATH = pathName + "/Water/Templates/Default/DCRT_N.asset";
+							}
+							if (System.IO.File.Exists(pathName + "/Water/Templates/Default/DCRT_RP.asset"))
+							{
+								DCRT_RP_PATH = pathName + "/Water/Templates/Default/DCRT_RP.asset";
+							}
+							if (System.IO.File.Exists(pathName + "/Water/Templates/Default/DRT_Cam_In.renderTexture"))
+							{
+								DRT_CAM_IN_PATH = pathName + "/Water/Templates/Default/DRT_Cam_In.renderTexture";
+							}
+						}
+					}
+				}
 
-            Material[] mats_temp = new Material[mats.Length];
-            if (mats.Length > 0)
-            {
-                for (int i = 0; i < mats.Length && i < mats_temp.Length; i++)
+                if (field == "") field = "default";
+
+				if (outPath != "")
                 {
-                    mats_temp[i] = mats[i];
+                    System.IO.Directory.CreateDirectory(outPath + "/" + field);
+                    if (DM_TOP_PATH != "")
+                    {
+                        string assetPath = outPath + "/" + field + "/" + field + "-DM-TOP.mat";
+						AssetDatabase.CopyAsset(DM_TOP_PATH, assetPath);
+                        Debug.Log("Copied template top to " + assetPath);
+                        surfaceMat = (Material)AssetDatabase.LoadAssetAtPath(assetPath, typeof(Material));
+                    }
+                    else
+                    {
+                        Debug.LogError("Couldnt find surface material template");
+                    }
+					if (DM_N_PATH != "")
+					{
+						string assetPath = outPath + "/" + field + "/" + field + "-DM-N.mat";
+						AssetDatabase.CopyAsset(DM_N_PATH, assetPath);
+						Debug.Log("Copied template top to " + assetPath);
+						normalMat = (Material)AssetDatabase.LoadAssetAtPath(assetPath, typeof(Material));
+
+					}
+					else
+					{
+						Debug.LogError("Couldnt find normal material template");
+					}
+					if (DM_RP_PATH != "")
+					{
+						string assetPath = outPath + "/" + field + "/" + field + "-DM-RP.mat";
+						AssetDatabase.CopyAsset(DM_RP_PATH, assetPath);
+						Debug.Log("Copied template top to " + assetPath);
+						renderMat = (Material)AssetDatabase.LoadAssetAtPath(assetPath, typeof(Material));
+					}
+					else
+					{
+						Debug.LogError("Couldnt find render material template");
+					}
+					if (DCRT_RP_PATH != "")
+					{
+						string assetPath = outPath + "/" + field + "/" + field + "-DCRT-RP.asset";
+						AssetDatabase.CopyAsset(DCRT_RP_PATH, assetPath);
+						Debug.Log("Copied template top to " + assetPath);
+						renderCRT = (CustomRenderTexture)AssetDatabase.LoadAssetAtPath(assetPath, typeof(CustomRenderTexture));
+					}
+					else
+					{
+						Debug.LogError("Couldnt find render plane CRT template");
+					}
+					if (DCRT_N_PATH != "")
+					{
+						string assetPath = outPath + "/" + field + "/" + field + "-DCRT-N.asset";
+						AssetDatabase.CopyAsset(DCRT_N_PATH, assetPath);
+						Debug.Log("Copied template top to " + assetPath);
+						normalCRT = (CustomRenderTexture)AssetDatabase.LoadAssetAtPath(assetPath, typeof(CustomRenderTexture));
+					}
+					else
+					{
+						Debug.LogError("Couldnt find render plane CRT template");
+					}
+                    if (DRT_CAM_IN_PATH != "")
+                    {
+						string assetPath = outPath + "/" + field + "/" + field + "-DRT-CI.renderTexture";
+						AssetDatabase.CopyAsset(DRT_CAM_IN_PATH, assetPath);
+						Debug.Log("Copied template top to " + assetPath);
+						cameraInRT = (RenderTexture)AssetDatabase.LoadAssetAtPath(assetPath, typeof(RenderTexture));
+					}
+                    if (surfaceMat != null) surfaceMat.SetTexture("_BumpMap", renderCRT);
+                    if (surfaceMat != null) surfaceMat.SetTexture("_Cube", cubemap);
+                    if (normalMat != null) normalMat.SetTexture("_MainTex", renderCRT);
+                    if (renderMat != null) renderMat.SetTexture("_CamIn", cameraInRT);
+
+
+					if (RefPlane && prefabs != null && prefabs.Count > 0 && prefabs[0] != null)
+					{
+                        GameObject rigRoot = prefabs[0];
+                        Camera camera = rigRoot.GetComponentInChildren<Camera>();
+                        camera.targetTexture = cameraInRT;
+
+						Vector3 RefScale = RefPlane.transform.localScale * 5;
+						Vector3 RefPos = RefPlane.transform.position;
+						Quaternion RefRot = RefPlane.transform.rotation;
+
+						rigRoot.transform.position = RefPos;
+						rigRoot.transform.rotation = RefRot;
+
+                        GameObject rigWaterSurface = rigRoot.GetComponentInChildren<MeshRenderer>().gameObject.transform.parent.gameObject;
+                        MeshRenderer rigWaterSurfaceRender = rigRoot.GetComponentInChildren<MeshRenderer>();
+                        rigWaterSurfaceRender.material = surfaceMat;
+						rigWaterSurface.transform.localPosition = Vector3.zero;
+
+						int WidthInPixels = (int)(RefScale.x * PixelsPerMeter + 0.5);
+						int HeightInPixels = (int)(RefScale.z * PixelsPerMeter + 0.5);
+
+						//Debug.Log("Set the rendertextures to" + WidthInPixels + "x" + HeightInPixels);
+						//Debug.Log("No I can't do it for you, it appearently 'isnt supported' whatever that means");
+
+						Vector3 newLocalScale = new Vector3((float)WidthInPixels / PixelsPerMeter, 1, (float)HeightInPixels / PixelsPerMeter);
+
+						rigWaterSurface.transform.localScale = newLocalScale;
+                        //rigWaterSurface.transform.localScale = Vector3.Scale(rigWaterSurface.transform.localScale, new Vector3(1, 5, 1));
+
+						camera.orthographicSize = newLocalScale.z;
+
+                        if (normalCRT != null)
+                        {
+                            normalCRT.Release();
+                            normalCRT.width = WidthInPixels;
+                            normalCRT.height = HeightInPixels;
+                            normalCRT.Create();
+                            normalCRT.material = normalMat;
+                        }
+                        if (renderCRT != null)
+                        {
+                            renderCRT.Release();
+                            renderCRT.width = WidthInPixels;
+                            renderCRT.height = HeightInPixels;
+                            renderCRT.Create();
+                            renderCRT.material = renderMat;
+                        }
+                        if (cameraInRT != null)
+                        {
+                            cameraInRT.Release();
+                            cameraInRT.width = WidthInPixels;
+                            cameraInRT.height = HeightInPixels;
+                            cameraInRT.Create();
+                        }
+
+						RefPlane.SetActive(false);
+
+						rigRoot.gameObject.SetActive(false);
+						rigRoot.gameObject.SetActive(true);
+					}
+				}
+                else
+                {
+                    Debug.LogError("Couldnt find output path");
                 }
 
+
             }
-
-            mat_count = EditorGUILayout.IntField("Materials in folder(s)", mat_count);
-            mats = new Material[mat_count];
-
-            //Material[] mats_temp = new Material[mats.Length];
-            if (mats_temp.Length > 0)
-            {
-
-                for (int i = 0; i < mats.Length && i < mats_temp.Length; i++)
-                {
-                    mats[i] = mats_temp[i];
-                }
-            }
-
-            for (int i = 0; i < mat_count; i++)
-            {
-                mats[i] = (Material)EditorGUILayout.ObjectField("Material", mats[i], typeof(Material), false);
-            }
-
-            if (GUILayout.Button("Refresh Materials", "Button"))
-            {
-                FillMaterials();
-            }
-
-            if (GUILayout.Button("Set up rig", "Button"))
-            {
-                Button();
-            }
-
-
-
+		
 
             GUILayout.EndScrollView();
             GUILayout.EndVertical();
@@ -237,6 +432,10 @@ namespace SilVR
             {
                 Debug.Log("Something has not been assigned, check to ensure all objects have been assigned");
             }
+        }
+        bool IsValidPrefab(GameObject prefab)
+        {
+            return true;
         }
 
         private void HelpMessage(string output)
