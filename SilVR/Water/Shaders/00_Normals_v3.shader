@@ -1,4 +1,4 @@
-﻿Shader "SilVR/Normal Calc v3"
+﻿Shader "SilVR/CRT/Normal Map"
 {
 	Properties
 	{

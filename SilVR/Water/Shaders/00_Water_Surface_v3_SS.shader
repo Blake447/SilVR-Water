@@ -1,4 +1,4 @@
-﻿Shader "SilVR Experimental/Water Surface v3 Standard Spec" {
+﻿Shader "SilVR/Water Surface Standard Spec" {
   Properties {
     _BumpMap ("Render Plane (RenderTexture)", 2D) = "bump" {}
     _Cube ("Cubemap (non specular)", CUBE) = "" {}
@@ -17,14 +17,14 @@
   }
   SubShader {
 
-    // GrabPass
-    // {
-    //     "_SilVRGrabPass"
-    // }
-
+    GrabPass
+    {
+        "_SilVRGrabPass"
+    }
     Tags {"Queue" = "Transparent" "RenderType" = "Transparent" }
     Cull Off
     Blend One One
+    
     CGPROGRAM
     #pragma surface surf StandardSpecular alpha
     #pragma target 4.0
@@ -134,12 +134,16 @@
       // places where you dont want the water bleeding outward.
       float alpha = lerp(_AlphaBack, _Alpha, saturate(IN.vface));
       o.Alpha = min(alpha, tex2D(_AlphaMask, IN.uv_BumpMap));
-      //o.Alpha = 1;
-
+      
+      #if !SHADER_API_MOBILE
+      o.Alpha = 1;
+      #endif
       // Sample the cubemap for the water surface reflection.
       //o.Emission = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, WorldReflectionVector (IN, o.Normal), 0);
       o.Emission = texCUBE (_Cube, WorldReflectionVector (IN, o.Normal)).rgb * _CubeTint;
-      //o.Emission = lerp(refraction, o.Emission, alpha);
+      #if !SHADER_API_MOBILE
+      o.Emission = lerp(refraction, o.Emission, alpha);
+      #endif
       //o.Alpha = 1;
       //o.Emission = saturate(IN.vface);
       //o.Emission = refraction;

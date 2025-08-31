@@ -1,4 +1,4 @@
-﻿Shader "SilVR Experimental/CRT Phys. Based"
+﻿Shader "SilVR/CRT/Render Plane"
 {
  Properties
  {
