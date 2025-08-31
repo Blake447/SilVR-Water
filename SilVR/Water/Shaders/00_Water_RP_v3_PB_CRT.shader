@@ -8,6 +8,7 @@
      // instead of two frames side by side.
      
      _CamIn("Camera In (Render Texture)", 2D) = "magenta" {}
+     _CamInTilingOffset("Camera In Tiling-offset", vector) = (1, 1, 0, 0)
 
      _WaveSpeed("Wave Speed", float) = 1
 
@@ -37,6 +38,8 @@
 
          sampler2D_half _CamIn;
          sampler2D_half _WaterMask;
+
+         float4 _CamInTilingOffset;
 
          fixed _maxLine;
 
@@ -84,11 +87,11 @@
              float4 rp_col_r = tex2D(_SelfTexture2D, uv_r);
 
              // Sample the camera at the given uv points
-             fixed4 cam_col = tex2D(_CamIn, uv);
-             fixed4 cam_col_u = tex2D(_CamIn, uv_u);
-             fixed4 cam_col_d = tex2D(_CamIn, uv_d);
-             fixed4 cam_col_l = tex2D(_CamIn, uv_l);
-             fixed4 cam_col_r = tex2D(_CamIn, uv_r);
+             fixed4 cam_col = tex2D(_CamIn, uv * _CamInTilingOffset.xy + _CamInTilingOffset.zw);
+             fixed4 cam_col_u = tex2D(_CamIn, uv_u * _CamInTilingOffset.xy + _CamInTilingOffset.zw);
+             fixed4 cam_col_d = tex2D(_CamIn, uv_d * _CamInTilingOffset.xy + _CamInTilingOffset.zw);
+             fixed4 cam_col_l = tex2D(_CamIn, uv_l * _CamInTilingOffset.xy + _CamInTilingOffset.zw);
+             fixed4 cam_col_r = tex2D(_CamIn, uv_r * _CamInTilingOffset.xy + _CamInTilingOffset.zw);
 
              // Sample the water mask to see if the pool should calculate at that spot
              float mask = step(.02, tex2D(_WaterMask, uv).x);
