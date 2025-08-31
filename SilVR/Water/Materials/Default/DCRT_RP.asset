@@ -6,7 +6,7 @@ CustomRenderTexture:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Wave_CRT
+  m_Name: DCRT_RP
   m_ImageContentsHash:
     serializedVersion: 2
     Hash: 00000000000000000000000000000000
@@ -19,7 +19,7 @@ CustomRenderTexture:
   m_AntiAliasing: 1
   m_MipCount: -1
   m_DepthStencilFormat: 0
-  m_ColorFormat: 22
+  m_ColorFormat: 24
   m_MipMap: 0
   m_GenerateMips: 1
   m_SRGB: 0
@@ -38,7 +38,7 @@ CustomRenderTexture:
   m_Dimension: 2
   m_VolumeDepth: 1
   m_ShadowSamplingMode: 2
-  m_Material: {fileID: 2100000, guid: e7fb5a61e039f70e2af4c76256e4992e, type: 2}
+  m_Material: {fileID: 2100000, guid: e4dee5538ae4a1e2ea7a247652722c0f, type: 2}
   m_InitSource: 0
   m_InitMaterial: {fileID: 0}
   m_InitColor: {r: 0, g: 0, b: 0, a: 0}

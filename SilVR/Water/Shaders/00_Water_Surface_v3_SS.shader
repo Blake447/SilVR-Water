@@ -17,13 +17,14 @@
   }
   SubShader {
 
-    GrabPass
-    {
-        "_SilVRGrabPass"
-    }
+    // GrabPass
+    // {
+    //     "_SilVRGrabPass"
+    // }
 
     Tags {"Queue" = "Transparent" "RenderType" = "Transparent" }
     Cull Off
+    Blend One One
     CGPROGRAM
     #pragma surface surf StandardSpecular alpha
     #pragma target 4.0
@@ -137,8 +138,9 @@
 
       // Sample the cubemap for the water surface reflection.
       //o.Emission = UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0, WorldReflectionVector (IN, o.Normal), 0);
-      o.Emission = lerp(refraction, texCUBE (_Cube, WorldReflectionVector (IN, o.Normal)).rgb * _CubeTint, alpha);
-      o.Alpha = 1;
+      o.Emission = texCUBE (_Cube, WorldReflectionVector (IN, o.Normal)).rgb * _CubeTint;
+      //o.Emission = lerp(refraction, o.Emission, alpha);
+      //o.Alpha = 1;
       //o.Emission = saturate(IN.vface);
       //o.Emission = refraction;
 
